@@ -84,13 +84,20 @@ def recommend_books_with_reason(user_input: List[dict], top_n=5):
 
     user_text = " ".join(answer_texts)
 
-    # "answer" 필드만 추출하여 벡터화
-    answer_texts = [item.answer for item in user_input]
+    print("Before Preprocess", flush=True)
 
-    user_text = " ".join(answer_texts)
     user_proc = preprocess_korean_text(user_text)
+
+    print("After Preprocess", flush=True)
+
     user_vec = vectorizer.transform([user_proc])
+
+    print("After vectorizer", flush=True)
+
     similarities = cosine_similarity(user_vec, tfidf_matrix).flatten()
+
+    print("After cosine_similarity", flush=True)
+
     top_indices = similarities.argsort()[::-1][:top_n]
 
     feature_names = vectorizer.get_feature_names_out()
@@ -120,5 +127,7 @@ def recommend_books_with_reason(user_input: List[dict], top_n=5):
             "hashtag": book.get("hashtag", ""),
             "reason": f"'{reason_keywords}' 키워드를 바탕으로 추천되었습니다."
         })
+    
+    print("Before Return Result", flush=True)
 
     return results
