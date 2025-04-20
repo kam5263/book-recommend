@@ -41,7 +41,7 @@ class BookRecommendation(BaseModel):
     reason: Union[str, None] = None  # ⭐ 추천 이유 필드 추가
 
 @app.post("/recommend", response_model=List[BookRecommendation])
-def recommend(request: RecommendRequest):
+def recommend(payload: RecommendRequest, request: Request):
     auth_header = request.headers.get("authorization")
     if not auth_header or not auth_header.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Unauthorized")
@@ -50,13 +50,12 @@ def recommend(request: RecommendRequest):
         raise HTTPException(status_code=403, detail="Forbidden")
     
     user_input = [
-        item for item in request.answers
+        item for item in payload.answers
         if item.answer and "-" not in item.answer
     ]
 
     print(user_input, flush=True)
-    # filtered_input = filter_negative_answers(user_input)
-    # print(filtered_input)
+
     recommendations = recommend_books_with_reason(user_input, top_n=6)
 
     return recommendations
