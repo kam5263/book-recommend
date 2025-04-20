@@ -10,10 +10,10 @@ kiwi = Kiwi()
 
 # 불러오기만 해도 추천 가능
 df = pd.read_csv("hangle_preprocessed_books.csv", encoding="utf-8-sig")
-tfidf_matrix = sparse.load_npz("tfidf_matrix_20.npz")
+tfidf_matrix = sparse.load_npz("tfidf_matrix_30.npz")
 
 # vectorizer도 불러와야 새로운 문장을 추천하려면 사용 가능
-with open("tfidf_vectorizer_20.pkl", "rb") as f:
+with open("tfidf_vectorizer_30.pkl", "rb") as f:
     vectorizer = pickle.load(f)
 
 def handle_q8_sijip(item) -> List[str]:
