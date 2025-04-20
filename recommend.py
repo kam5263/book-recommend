@@ -4,16 +4,17 @@ import pickle
 from sklearn.metrics.pairwise import cosine_similarity
 from kiwipiepy import Kiwi
 from typing import List
+import os
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # ✅ 형태소 분석기 초기화 (전역에서 한 번만)
 kiwi = Kiwi()
 
-# 불러오기만 해도 추천 가능
-df = pd.read_csv("hangle_preprocessed_books.csv", encoding="utf-8-sig")
-tfidf_matrix = sparse.load_npz("tfidf_matrix_30.npz")
+df = pd.read_csv(os.path.join(BASE_DIR, "hangle_preprocessed_books.csv"), encoding="utf-8-sig")
+tfidf_matrix = sparse.load_npz(os.path.join(BASE_DIR, "tfidf_matrix_30.npz"))
 
-# vectorizer도 불러와야 새로운 문장을 추천하려면 사용 가능
-with open("tfidf_vectorizer_30.pkl", "rb") as f:
+with open(os.path.join(BASE_DIR, "tfidf_vectorizer_30.pkl"), "rb") as f:
     vectorizer = pickle.load(f)
 
 def handle_q8_sijip(item) -> List[str]:
@@ -46,20 +47,9 @@ def preprocess_korean_text(text):
                 if token.tag in ['NNG', 'NNP', 'VA'] and token.form not in NEGATIVE_KEYWORDS]
     return ' '.join(filtered)
 
-def recommend_boods_by_input(user_input, top_n=5):
-    # 사용자의 선택을 하나의 문장처럼 묶음
-    user_text = " ".join(user_input)
-
-    # 이 텍스트를 형태소 분석하고 TF-IDF 벡터화
-    user_vec = vectorizer.transform([preprocess_korean_text(user_text)])
-    # 전체 책 벡터들과 유사도 비교
-    similarities = cosine_similarity(user_vec, tfidf_matrix).flatten()
-    top_indices = similarities.argsort()[::-1][:top_n+1]
-
-    # 결과 출력
-    return df.iloc[top_indices][["title", "author", "hashtag"]]
-
 def recommend_books_with_reason(user_input: List[dict], top_n=5):
+    print("[DEBUG] 추천 요청 시작")
+    print("[DEBUG] 사용자 입력:", user_input)
     # Q5 응답 확인
     q5_answer = next((item.answer for item in user_input if item.question_id == 5), None)
     weight_map = Q5_WEIGHT_MAP.get(q5_answer, [])
