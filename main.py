@@ -1,11 +1,15 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Union
 from recommend import recommend_books_with_reason
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
 # for start using 'uvicorn main:app --reload'
 app = FastAPI()
+API_SECRET_KEY = os.getenv("MY_API_KEY")
 
 # CORS 설정 (React 연동 시 필요)
 app.add_middleware(
@@ -38,7 +42,13 @@ class BookRecommendation(BaseModel):
 
 @app.post("/recommend", response_model=List[BookRecommendation])
 def recommend(request: RecommendRequest):
-    # user_input = list(request.answers.values())
+    auth_header = request.headers.get("authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    token = auth_header.split(" ")[1]
+    if token != API_SECRET_KEY:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    
     user_input = [
         item for item in request.answers
         if item.answer and "-" not in item.answer
