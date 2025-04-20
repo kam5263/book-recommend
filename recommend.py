@@ -2,15 +2,18 @@ import pandas as pd
 from scipy import sparse
 import pickle
 from sklearn.metrics.pairwise import cosine_similarity
-from konlpy.tag import Okt
+from kiwipiepy import Kiwi
 from typing import List
 
+# ✅ 형태소 분석기 초기화 (전역에서 한 번만)
+kiwi = Kiwi()
+
 # 불러오기만 해도 추천 가능
-df = pd.read_csv("preprocessed_books.csv", encoding="utf-8-sig")
-tfidf_matrix = sparse.load_npz("tfidf_matrix.npz")
+df = pd.read_csv("hangle_preprocessed_books.csv", encoding="utf-8-sig")
+tfidf_matrix = sparse.load_npz("tfidf_matrix_20.npz")
 
 # vectorizer도 불러와야 새로운 문장을 추천하려면 사용 가능
-with open("tfidf_vectorizer.pkl", "rb") as f:
+with open("tfidf_vectorizer_20.pkl", "rb") as f:
     vectorizer = pickle.load(f)
 
 def handle_q8_sijip(item) -> List[str]:
@@ -34,12 +37,13 @@ SPECIAL_HANDLERS = {
     # 향후 추가 가능
 }
 
+# 형태소 분석기 (Kiwi) 기반 전처리 함수
 def preprocess_korean_text(text):
-    okt = Okt()
     if pd.isna(text):
         return ""
-    tokens = okt.pos(text, stem=True)
-    filtered = [word for word, tag in tokens if tag in ['Noun', 'Adjective'] and word not in NEGATIVE_KEYWORDS]
+    tokens = kiwi.tokenize(text)
+    filtered = [token.form for token in tokens
+                if token.tag in ['NNG', 'NNP', 'VA'] and token.form not in NEGATIVE_KEYWORDS]
     return ' '.join(filtered)
 
 def recommend_boods_by_input(user_input, top_n=5):

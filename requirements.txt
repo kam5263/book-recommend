@@ -4,4 +4,4 @@ pydantic
 pandas
 scikit-learn
 scipy
-konlpy
+kiwipiepy
