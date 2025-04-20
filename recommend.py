@@ -1,22 +1,38 @@
 import pandas as pd
 from scipy import sparse
-import pickle
 from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.feature_extraction.text import TfidfVectorizer
 from kiwipiepy import Kiwi
 from typing import List
 import os
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# ✅ 형태소 분석기 초기화 (전역에서 한 번만)
+# 형태소 분석기 초기화 (전역에서 한 번만)
 kiwi = Kiwi()
 
+print("[DEBUG] csv 파일 불러오는 중")
 df = pd.read_csv(os.path.join(BASE_DIR, "hangle_preprocessed_books.csv"), encoding="utf-8-sig")
-tfidf_matrix = sparse.load_npz(os.path.join(BASE_DIR, "tfidf_matrix_30.npz"))
 
-with open(os.path.join(BASE_DIR, "tfidf_vectorizer_30.pkl"), "rb") as f:
-    vectorizer = pickle.load(f)
+NEGATIVE_KEYWORDS = {"거의", "안", "없다", "싫다", "싫어", "아니다"}
+# 형태소 분석기 (Kiwi) 기반 전처리 함수
+def preprocess_korean_text(text):
+    if pd.isna(text):
+        return ""
+    tokens = kiwi.tokenize(text)
+    filtered = [token.form for token in tokens
+                if token.tag in ['NNG', 'NNP', 'VA'] and token.form not in NEGATIVE_KEYWORDS]
+    return ' '.join(filtered)
 
+print("[DEBUG] clean_text 재생성 중")
+df["clean_text"] = df["clean_text"].apply(preprocess_korean_text)
+
+# TF-IDF 벡터화 (직접 생성)
+print("[DEBUG] TfidfVectorizer 실행 중")
+vectorizer = TfidfVectorizer(max_features=3000, ngram_range=(1, 2))
+tfidf_matrix = vectorizer.fit_transform(df["clean_text"])
+
+# 특수 핸들러 및 키워드 설정
 def handle_q8_sijip(item) -> List[str]:
     if item.answer == "시집_자주":
         return ["시집"] * 3
@@ -24,7 +40,6 @@ def handle_q8_sijip(item) -> List[str]:
         return ["시집"]
     return []
 
-NEGATIVE_KEYWORDS = {"거의", "안", "없다", "싫다", "싫어", "아니다"}
 # Q5 응답 → 강조할 질문 ID 및 가중치 목록
 Q5_WEIGHT_MAP = {
     "작가": [(2, 2.0)],
@@ -37,15 +52,6 @@ SPECIAL_HANDLERS = {
     8: handle_q8_sijip
     # 향후 추가 가능
 }
-
-# 형태소 분석기 (Kiwi) 기반 전처리 함수
-def preprocess_korean_text(text):
-    if pd.isna(text):
-        return ""
-    tokens = kiwi.tokenize(text)
-    filtered = [token.form for token in tokens
-                if token.tag in ['NNG', 'NNP', 'VA'] and token.form not in NEGATIVE_KEYWORDS]
-    return ' '.join(filtered)
 
 def recommend_books_with_reason(user_input: List[dict], top_n=5):
     print("[DEBUG] 추천 요청 시작")
