@@ -12,7 +12,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 kiwi = Kiwi()
 
 print("[DEBUG] csv 파일 불러오는 중")
-df = pd.read_csv(os.path.join(BASE_DIR, "hangle_preprocessed_books.csv"), encoding="utf-8-sig")
+df = pd.read_csv(os.path.join(BASE_DIR, "hangle_preprocessed_books_deduple.csv"), encoding="utf-8-sig")
 
 NEGATIVE_KEYWORDS = {"거의", "안", "없다", "싫다", "싫어", "아니다"}
 # 형태소 분석기 (Kiwi) 기반 전처리 함수
