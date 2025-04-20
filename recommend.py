@@ -1,23 +1,16 @@
 import pandas as pd
-from scipy import sparse
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import TfidfVectorizer
-from kiwipiepy import Kiwi
 from typing import List
 import os
 import time
+import requests
+from dotenv import load_dotenv
+load_dotenv()
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# 형태소 분석기 초기화 (전역에서 한 번만)
-kiwi = None
-
-def get_kiwi():
-    global kiwi
-    if kiwi is None:
-        print("[DEBUG] Kiwi 초기화 중...", flush=True)
-        kiwi = Kiwi()
-    return kiwi
+HUGGINGFACE_SPACE_URL = os.getenv("HUGGINGFACE_SPACE_URL")
 
 print("[DEBUG] csv 파일 불러오는 중")
 df = pd.read_csv(os.path.join(BASE_DIR, "hangle_preprocessed_books_deduple.csv"), encoding="utf-8-sig")
@@ -29,26 +22,23 @@ def preprocess_korean_text(text):
 
     if pd.isna(text):
         return ""
-    # tokens = kiwi.tokenize(text)
-    # filtered = [token.form for token in tokens
-    #             if token.tag in ['NNG', 'NNP', 'VA'] and token.form not in NEGATIVE_KEYWORDS]
-    # return ' '.join(filtered)
-
     try:
-        kiwi_instance = get_kiwi()
-        tokens = kiwi_instance.tokenize(text)
-        filtered = [token.form for token in tokens
-                 if token.tag in ['NNG', 'NNP', 'VA'] and token.form not in NEGATIVE_KEYWORDS]
-        return ' '.join(filtered)
-    except Exception as e:
-        print("[ERROR] Kiwi tokenize 실패:", e, flush=True)
-        return ""
+        # Hugging Face Spaces API 호출
+        response = requests.post(HUGGINGFACE_SPACE_URL, json={"text": text}, timeout=10)
+        response.raise_for_status()
+        data = response.json()
 
-# start_time = time.time()
-# print("[DEBUG] clean_text 재생성 중")
-# df["clean_text"] = df["clean_text"].apply(preprocess_korean_text)
-# end_time = time.time()
-# print(f"실행 시간: {end_time - start_time:.4f}초")
+        tagged_tokens = data.get("tagged", [])
+        filtered = [
+            token["form"]
+            for token in tagged_tokens
+            if token["tag"] in ['NNG', 'NNP', 'VA'] and token["form"] not in NEGATIVE_KEYWORDS
+        ]
+        return ' '.join(filtered)
+
+    except Exception as e:
+        print("[ERROR] HuggingFace tokenizer 실패:", e, flush=True)
+        return ""
 
 start_time = time.time()
 # TF-IDF 벡터화 (직접 생성)
