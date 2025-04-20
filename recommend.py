@@ -25,6 +25,12 @@ def preprocess_korean_text(text):
                 if token.tag in ['NNG', 'NNP', 'VA'] and token.form not in NEGATIVE_KEYWORDS]
     return ' '.join(filtered)
 
+# start_time = time.time()
+# print("[DEBUG] clean_text 재생성 중")
+# df["clean_text"] = df["clean_text"].apply(preprocess_korean_text)
+# end_time = time.time()
+# print(f"실행 시간: {end_time - start_time:.4f}초")
+
 start_time = time.time()
 # TF-IDF 벡터화 (직접 생성)
 print("[DEBUG] TfidfVectorizer 실행 중")
@@ -55,8 +61,8 @@ SPECIAL_HANDLERS = {
 }
 
 def recommend_books_with_reason(user_input: List[dict], top_n=5):
-    print("[DEBUG] 추천 요청 시작")
-    print("[DEBUG] 사용자 입력:", user_input)
+    print("[DEBUG] 추천 요청 시작", flush=True)
+    print("[DEBUG] 사용자 입력:", user_input, flush=True)
     # Q5 응답 확인
     q5_answer = next((item.answer for item in user_input if item.question_id == 5), None)
     weight_map = Q5_WEIGHT_MAP.get(q5_answer, [])

@@ -44,7 +44,7 @@ def recommend(request: RecommendRequest):
         if item.answer and "-" not in item.answer
     ]
 
-    print(user_input)
+    print(user_input, flush=True)
     # filtered_input = filter_negative_answers(user_input)
     # print(filtered_input)
     recommendations = recommend_books_with_reason(user_input, top_n=6)
