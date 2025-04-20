@@ -5,6 +5,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from kiwipiepy import Kiwi
 from typing import List
 import os
+import time
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -24,13 +25,13 @@ def preprocess_korean_text(text):
                 if token.tag in ['NNG', 'NNP', 'VA'] and token.form not in NEGATIVE_KEYWORDS]
     return ' '.join(filtered)
 
-print("[DEBUG] clean_text 재생성 중")
-df["clean_text"] = df["clean_text"].apply(preprocess_korean_text)
-
+start_time = time.time()
 # TF-IDF 벡터화 (직접 생성)
 print("[DEBUG] TfidfVectorizer 실행 중")
-vectorizer = TfidfVectorizer(max_features=3000, ngram_range=(1, 2))
+vectorizer = TfidfVectorizer(max_features=2000, ngram_range=(1, 2))
 tfidf_matrix = vectorizer.fit_transform(df["clean_text"])
+end_time = time.time()
+print(f"실행 시간: {end_time - start_time:.4f}초")
 
 # 특수 핸들러 및 키워드 설정
 def handle_q8_sijip(item) -> List[str]:
