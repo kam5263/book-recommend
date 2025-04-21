@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Union
@@ -89,6 +89,33 @@ def recommend(payload: RecommendRequest, request: Request):
     ]).execute()
 
     return recommendations
+
+@app.get("/popular")
+def get_popular_books(limit: int = Query(10, description="가져올 상위 도서 개수")):
+    """
+    popularityScore 기준으로 상위 인기 도서 n개 조회
+    """
+    # print(payload.answers, flush=True)
+    # auth_header = request.headers.get("authorization")
+    # if not auth_header or not auth_header.startswith("Bearer "):
+    #     raise HTTPException(status_code=401, detail="Unauthorized")
+    # token = auth_header.split(" ")[1]
+    # if token != API_SECRET_KEY:
+    #     raise HTTPException(status_code=403, detail="Forbidden")
+    
+    try:
+        response = supabase.table("aladin_books")\
+            .select("*")\
+            .order("popularityScore", desc=True)\
+            .limit(limit)\
+            .execute()
+
+        if response.data:
+            return {"count": len(response.data), "results": response.data}
+        else:
+            return {"count": 0, "results": []}
+    except Exception as e:
+        return {"error": str(e)}
 
 # 헬스 체크용
 @app.get("/")
