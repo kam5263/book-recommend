@@ -5,7 +5,15 @@ from typing import List, Union
 from recommend import recommend_books_with_reason
 import os
 from dotenv import load_dotenv
+from supabase import create_client, Client
+
 load_dotenv()
+
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+SERVICE_ROLE = os.getenv("SERVICE_ROLE")
+
+supabase: Client = create_client(SUPABASE_URL, SERVICE_ROLE)
 
 # for start using 'uvicorn main:app --reload'
 app = FastAPI()
@@ -42,12 +50,23 @@ class BookRecommendation(BaseModel):
 
 @app.post("/recommend", response_model=List[BookRecommendation])
 def recommend(payload: RecommendRequest, request: Request):
-    auth_header = request.headers.get("authorization")
-    if not auth_header or not auth_header.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Unauthorized")
-    token = auth_header.split(" ")[1]
-    if token != API_SECRET_KEY:
-        raise HTTPException(status_code=403, detail="Forbidden")
+    # print(payload.answers, flush=True)
+    # auth_header = request.headers.get("authorization")
+    # if not auth_header or not auth_header.startswith("Bearer "):
+    #     raise HTTPException(status_code=401, detail="Unauthorized")
+    # token = auth_header.split(" ")[1]
+    # if token != API_SECRET_KEY:
+    #     raise HTTPException(status_code=403, detail="Forbidden")
+    
+    # Supabase에 저장
+    # Supabase: user_answers 테이블에 저장
+    supabase.table("user_answers").insert([
+        {
+            "user_id": payload.user_id,
+            "question_id": item.question_id,
+            "answers": item.answer
+        } for item in payload.answers
+    ]).execute()
     
     user_input = [
         item for item in payload.answers
@@ -57,6 +76,17 @@ def recommend(payload: RecommendRequest, request: Request):
     print(user_input, flush=True)
 
     recommendations = recommend_books_with_reason(user_input, top_n=6)
+    
+    # Supabase: recommend_results 테이블에 저장
+    supabase.table("recommend_results").insert([
+        {
+            "user_id": payload.user_id,
+            "title": rec["title"],
+            "author": rec["author"],
+            "hashtag": rec["hashtag"],
+            "reason": rec["reason"]
+        } for rec in recommendations
+    ]).execute()
 
     return recommendations
 
