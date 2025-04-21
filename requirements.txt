@@ -7,3 +7,4 @@ scipy
 kiwipiepy
 requests
 python-dotenv
+supabase
