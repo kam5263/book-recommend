@@ -17,7 +17,7 @@ supabase: Client = create_client(SUPABASE_URL, SERVICE_ROLE)
 
 # for start using 'uvicorn main:app --reload'
 app = FastAPI()
-API_SECRET_KEY = os.getenv("MY_API_KEY")
+API_SECRET_KEY = os.getenv("API_SECRET_KEY")
 
 # CORS 설정 (React 연동 시 필요)
 app.add_middleware(
@@ -50,15 +50,14 @@ class BookRecommendation(BaseModel):
 
 @app.post("/recommend", response_model=List[BookRecommendation])
 def recommend(payload: RecommendRequest, request: Request):
-    # print(payload.answers, flush=True)
-    # auth_header = request.headers.get("authorization")
-    # if not auth_header or not auth_header.startswith("Bearer "):
-    #     raise HTTPException(status_code=401, detail="Unauthorized")
-    # token = auth_header.split(" ")[1]
-    # if token != API_SECRET_KEY:
-    #     raise HTTPException(status_code=403, detail="Forbidden")
     
-    # Supabase에 저장
+    auth_header = request.headers.get("authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    token = auth_header.split(" ")[1]
+    if token != API_SECRET_KEY:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    
     # Supabase: user_answers 테이블에 저장
     supabase.table("user_answers").insert([
         {
@@ -91,17 +90,19 @@ def recommend(payload: RecommendRequest, request: Request):
     return recommendations
 
 @app.get("/popular")
-def get_popular_books(limit: int = Query(10, description="가져올 상위 도서 개수")):
+def get_popular_books(request:Request, limit: int = Query(10, description="가져올 상위 도서 개수")):
     """
     popularityScore 기준으로 상위 인기 도서 n개 조회
     """
-    # print(payload.answers, flush=True)
-    # auth_header = request.headers.get("authorization")
-    # if not auth_header or not auth_header.startswith("Bearer "):
-    #     raise HTTPException(status_code=401, detail="Unauthorized")
-    # token = auth_header.split(" ")[1]
-    # if token != API_SECRET_KEY:
-    #     raise HTTPException(status_code=403, detail="Forbidden")
+
+    auth_header = request.headers.get("authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    
+    token = auth_header.split(" ")[1]
+
+    if token != API_SECRET_KEY:
+        raise HTTPException(status_code=403, detail="Forbidden")
     
     try:
         response = supabase.table("aladin_books")\
@@ -116,7 +117,62 @@ def get_popular_books(limit: int = Query(10, description="가져올 상위 도�
             return {"count": 0, "results": []}
     except Exception as e:
         return {"error": str(e)}
+@app.get("/expensive")
+def get_expensive_books(request:Request, limit: int = Query(10, description="비싸고 두꺼운 책")):
+    """
+    
+    """
+    auth_header = request.headers.get("authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    
+    token = auth_header.split(" ")[1]
 
+    if token != API_SECRET_KEY:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    
+    try:
+        response = supabase.table("aladin_books")\
+            .select("*")\
+            .order("priceStandard", desc=True)\
+            .order("itemPage", desc=True)\
+            .limit(limit)\
+            .execute()
+
+        if response.data:
+            return {"count": len(response.data), "results": response.data}
+        else:
+            return {"count": 0, "results": []}
+    except Exception as e:
+        return {"error": str(e)}
+@app.get("/thick")
+def get_thick_books(request:Request, limit: int = Query(10, description="비싸고 두꺼운 책")):
+    """
+    
+    """
+    auth_header = request.headers.get("authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    
+    token = auth_header.split(" ")[1]
+
+    if token != API_SECRET_KEY:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    
+    try:
+        response = supabase.table("aladin_books")\
+            .select("*")\
+            .order("itemPage", desc=True)\
+            .order("priceStandard", desc=True)\
+            .limit(limit)\
+            .execute()
+
+        if response.data:
+            return {"count": len(response.data), "results": response.data}
+        else:
+            return {"count": 0, "results": []}
+    except Exception as e:
+        return {"error": str(e)}
 # 헬스 체크용
 @app.get("/")
 def read_root():
